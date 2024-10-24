@@ -1,0 +1,5 @@
+torch
+tensorflow
+numpy
+requests
+scikit-learn
