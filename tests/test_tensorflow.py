@@ -17,7 +17,7 @@ class TestEregionTensorFlow(unittest.TestCase):
         self.model.compile(optimizer='adam', loss='mse')
 
         # Initialize the EregionTensorFlow tracker
-        self.tracker = et(self.model, "test_model_tf", "9c164cf9-5e42-406f-9202-1eca80602edc", auto_track=False)
+        self.tracker = et(self.model, "test_model_tf", "9c164cf9-5e42-406f-9202-1eca80602edc", auto_track=True)
 
     def test_initialization(self):
         """
