@@ -26,39 +26,45 @@ class EregionTensorFlow(Eregion):
         original_train_step = self.model.train_step
 
         @tf.function
-        def custom_train_step(data: Any):
-            result = original_train_step(data)
+        def _start_auto_tracking(self):
+            """
+            Auto-tracking for TensorFlow using custom training steps.
+            Pushes data after every training step update.
+            """
+            original_train_step = self.model.train_step
 
-            # We can now collect metrics at the end of the step in eager mode
-            tf.keras.backend.set_learning_phase(0)  # Ensures we're in inference mode when gathering metrics
+            @tf.function
+            def custom_train_step(data: Any):
+                result = original_train_step(data)
 
-            # Collect metrics: evaluate results after the training step
-            metrics = {}
-            for metric in self.model.metrics:
-                # Evaluate the result if it's a symbolic tensor
-                metrics[metric.name] = metric.result().numpy()
+                # We can now collect metrics at the end of the step in eager mode
+                tf.keras.backend.set_learning_phase(False) # Ensures we're in inference mode when gathering metrics
 
-            self.data_buffer.append(metrics)
+                # Collect metrics: evaluate results after the training step
+                metrics = {}
+                for metric in self.model.metrics:
+                    # Evaluate the result if it's a symbolic tensor
+                    metrics[metric.name] = metric.result().numpy()
+                self.data_buffer.append(metrics)
 
-            # Collect custom metrics like gradient norm, entropy, and dead neurons detection
-            grad_norm = self.analytics.gradient_norm([param.numpy() for param in self.model.trainable_variables])
-            entropy = self.analytics.entropy_of_predictions(self.data_buffer)
-            dead_neurons = self.analytics.dead_neurons_detection(self.data_buffer)
+                # Collect custom metrics like gradient norm, entropy, and dead neurons detection
+                grad_norm = self.analytics.gradient_norm([param.numpy() for param in self.model.trainable_variables])
+                entropy = self.analytics.entropy_of_predictions(self.data_buffer)
+                dead_neurons = self.analytics.dead_neurons_detection(self.data_buffer)
+                self.data_buffer.append({
+                    'gradient_norm': grad_norm,
+                    'entropy': entropy,
+                    'dead_neurons': dead_neurons,
+                    'layer_activation_distribution': self.analytics.layer_activation_distribution(self.data_buffer)
+                })
 
-            self.data_buffer.append({
-                'gradient_norm': grad_norm,
-                'entropy': entropy,
-                'dead_neurons': dead_neurons,
-                'layer_activation_distribution': self.analytics.layer_activation_distribution(self.data_buffer)
-            })
+                # Push the collected data after every training step
+                self.push()
 
-            # Push the collected data after every training step
-            self.push()
+                return result
 
-            return result
-
-        # Override the train step method to include auto-pushing
-        self.model.train_step = custom_train_step
+            # Override the train step method to include auto-pushing
+            self.model.train_step = custom_train_step
 
     def push(self, data=None):
         """
