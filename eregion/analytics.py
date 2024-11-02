@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+import pandas as pd
 
 class EregionAnalytics:
     def __init__(self):
@@ -110,3 +111,100 @@ class EregionAnalytics:
         return {
             'output_shift': np.mean(np.abs(original_output - perturbed_output))
         }
+    def entropy_distribution(self, probabilities, n_bins=10):
+        """
+        Generates data for an entropy distribution histogram.
+        """
+        entropy_values = -np.sum(probabilities * np.log(probabilities + 1e-9), axis=1)
+        hist, bin_edges = np.histogram(entropy_values, bins=n_bins, range=(0, 1))
+        return hist, bin_edges
+
+    def calibration_curve_entropy(self, probabilities, labels, n_bins=10):
+        """
+        Prepares data for a calibration curve.
+        """
+        bin_edges = np.linspace(0, 1, n_bins + 1)
+        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+        accuracies = []
+        confidences = []
+
+        for i in range(n_bins):
+            bin_mask = (probabilities >= bin_edges[i]) & (probabilities < bin_edges[i + 1])
+            bin_confidence = np.mean(probabilities[bin_mask]) if bin_mask.any() else 0
+            bin_accuracy = np.mean(labels[bin_mask] == (probabilities[bin_mask] > 0.5)) if bin_mask.any() else 0
+            accuracies.append(bin_accuracy)
+            confidences.append(bin_confidence)
+
+        return bin_centers, accuracies, confidences
+
+    def uncertainty_trend_over_time(self, predictions, timestamps):
+        """
+        Tracks entropy trend over time.
+        """
+        entropy_values = -np.sum(predictions * np.log(predictions + 1e-9), axis=1)
+        trend_data = pd.DataFrame({'timestamp': timestamps, 'entropy': entropy_values})
+        trend_df = trend_data.groupby('timestamp')['entropy'].mean().reset_index()
+        return trend_df
+
+    def confidence_vs_entropy_data(self, probabilities):
+        """
+        Prepares data for a confidence vs. entropy scatter plot.
+        """
+        confidences = np.max(probabilities, axis=1)
+        entropies = -np.sum(probabilities * np.log(probabilities + 1e-9), axis=1)
+        return confidences, entropies
+
+    def entropy_distribution_across_classes(self, probabilities, labels, n_classes):
+        """
+        Gathers entropy distribution data across each class.
+        """
+        entropies = -np.sum(probabilities * np.log(probabilities + 1e-9), axis=1)
+        class_entropy_data = {class_id: [] for class_id in range(n_classes)}
+
+        for label, entropy in zip(labels, entropies):
+            class_entropy_data[label].append(entropy)
+
+        return class_entropy_data
+
+    def entropy_progress_over_epochs(self, epoch_entropies):
+        """
+        Prepares data for the average entropy of model predictions over training epochs.
+        """
+        return {
+            'epochs': list(range(len(epoch_entropies))),
+            'average_entropy': epoch_entropies
+        }
+
+    def loss_curve_data(self, labeled_losses, unlabeled_losses):
+        """
+        Prepares data for the loss curve comparison of labeled and unlabeled data.
+        """
+        return {
+            'epochs': list(range(len(labeled_losses))),
+            'labeled_loss': labeled_losses,
+            'unlabeled_loss': unlabeled_losses
+        }
+
+    def confidence_distribution(self, probabilities, n_bins=10):
+        """
+        Prepares data for the confidence distribution histogram.
+        """
+        confidences = np.max(probabilities, axis=1)
+        hist, bin_edges = np.histogram(confidences, bins=n_bins, range=(0, 1))
+        return hist, bin_edges
+
+    def tsne_or_pca_data(self, data, n_components=2):
+        """
+        Prepares data for a t-SNE or PCA scatter plot for labeled and unlabeled data representations.
+        """
+        from sklearn.decomposition import PCA
+        from sklearn.manifold import TSNE
+
+        if n_components == 2:
+            tsne = TSNE(n_components=2)
+            reduced_data = tsne.fit_transform(data)
+        else:
+            pca = PCA(n_components=n_components)
+            reduced_data = pca.fit_transform(data)
+
+        return reduced_data
