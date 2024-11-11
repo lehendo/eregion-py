@@ -15,15 +15,11 @@ class TestEregionPyTorch(unittest.TestCase):
     def test_push_data(self):
         self.tracker.push({'test': 'data'})
         self.assertEqual(self.tracker.data_buffer, [])
+
     def test_auto_track(self):
-        """
-        Test that auto-tracking works by simulating training and ensuring metrics are collected and pushed.
-        """
-        # Enable auto tracking
         self.tracker.auto_track = True
         self.tracker._start_auto_tracking()
 
-        # Simulate training with dummy data
         x_train = torch.rand(10, 5)
         y_train = torch.rand(10, 1)
 
