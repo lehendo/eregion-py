@@ -37,5 +37,26 @@ class TestEregionPyTorch(unittest.TestCase):
         with self.assertRaises(TypeError):
             ep("not a model", "test", "api_key")
 
+    def test_prepare_metrics(self):
+        # Enable auto-tracking
+        self.tracker.auto_track = True
+        self.tracker._start_auto_tracking()
+
+        x_train = torch.rand(10, 5)
+        _ = self.tracker.model(x_train)
+
+        metrics = self.tracker._prepare_metrics()
+
+        self.assertIn('entropy', metrics)
+        self.assertIn('dead_neurons', metrics)
+        self.assertIn('layer_activation_distribution', metrics)
+        # Note: gradient_norm might not be present if the model hasn't been trained
+
+        for item in self.tracker.data_buffer:
+            self.assertIn('layer', item)
+            self.assertIn('output_shape', item)
+            self.assertIn('output_mean', item)
+            self.assertIn('output_std', item)
+
 if __name__ == "__main__":
     unittest.main()

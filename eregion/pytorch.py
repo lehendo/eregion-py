@@ -2,6 +2,7 @@ import torch
 from .base import Eregion
 from .analytics import EregionAnalytics
 from typing import Any
+import numpy as np
 
 
 class EregionPyTorch(Eregion):
@@ -22,13 +23,20 @@ class EregionPyTorch(Eregion):
         """Auto-tracking using forward hooks on model layers for every forward pass."""
 
         def forward_hook(module, input, output):
-            metrics = {
-                'layer': module.__class__.__name__,
-                'output': output.detach().cpu().numpy().tolist() if isinstance(output, torch.Tensor) else output,
-            }
+            if isinstance(output, torch.Tensor):
+                metrics = {
+                    'layer': module.__class__.__name__,
+                    'output_shape': list(output.shape),
+                    'output_mean': output.mean().item(),
+                    'output_std': output.std().item(),
+                }
+            else:
+                metrics = {
+                    'layer': module.__class__.__name__,
+                    'output': 'Non-tensor output'
+                }
             self.data_buffer.append(metrics)
 
-        # Register forward hook on all leaf layers of the model
         hook_count = 0
         for name, layer in self.model.named_modules():
             if not list(layer.children()):
@@ -40,20 +48,26 @@ class EregionPyTorch(Eregion):
     def _prepare_metrics(self):
         """Compute custom metrics, including gradient norm, entropy, dead neurons, and activations."""
 
+        metrics = {}
+
         # Calculate gradient norm if gradients are available
-        grad_norm = (self.analytics.gradient_norm(
-            [param.grad.detach().cpu().numpy() for param in self.model.parameters() if param.grad is not None]
-        ) if any(param.grad is not None for param in self.model.parameters()) else None)
+        if any(param.grad is not None for param in self.model.parameters()):
+            grad_norm = self.analytics.gradient_norm(
+                [param.grad.detach().cpu().numpy() for param in self.model.parameters() if param.grad is not None]
+            )
+            metrics['gradient_norm'] = grad_norm
 
-        # Collect outputs from tracked layers for additional analytics
-        outputs = [item['output'] for item in self.data_buffer if 'output' in item]
+        outputs = [item['output_mean'] for item in self.data_buffer if 'output_mean' in item]
 
-        return {
-            'gradient_norm': grad_norm,
-            'entropy': self.analytics.entropy_of_predictions(outputs),
+        outputs = [np.array(o) if isinstance(o, list) else o for o in outputs]
+
+        metrics.update({
+            'entropy': self.analytics.entropy_of_predictions(outputs).tolist(),
             'dead_neurons': self.analytics.dead_neurons_detection(outputs),
             'layer_activation_distribution': self.analytics.layer_activation_distribution(outputs)
-        }
+        })
+
+        return metrics
 
     def push(self, data=None):
         """Push tracked data to the API and clear buffer post-push."""
@@ -65,7 +79,8 @@ class EregionPyTorch(Eregion):
             self.data_buffer.append(data)
 
         if self.data_buffer:
-            combined_data = {'metrics': self.data_buffer}
+            metrics = self._prepare_metrics()
+            combined_data = {'metrics': metrics, 'data': self.data_buffer}
 
             super().push(combined_data)  # Push combined data
             self.data_buffer.clear()  # Clear buffer after push

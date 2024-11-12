@@ -23,33 +23,18 @@ class EregionAnalytics:
             }
 
     def entropy_of_predictions(self, outputs):
-        """
-        Calculate the entropy of predictions.
-
-        :param outputs: List of model outputs (each output should be a list or numpy array)
-        :return: Average entropy across all outputs
-        """
-        if not outputs:
-            return None
-
-        entropies = []
+        entropy_values = []
         for output in outputs:
-            # Convert to numpy array if it's a list
-            if isinstance(output, list):
-                output = np.array(output)
-
-            # Ensure the output is 2D
-            if output.ndim == 1:
-                output = output.reshape(1, -1)
-
-            # Apply softmax to get probabilities
-            probabilities = np.exp(output) / np.sum(np.exp(output), axis=1, keepdims=True)
-
-            # Calculate entropy
-            entropy = -np.sum(probabilities * np.log(probabilities + 1e-9), axis=1)  # 1e-9 to avoid log(0)
-            entropies.extend(entropy)
-
-        return np.mean(entropies)
+            if isinstance(output, (float, int)):
+                # For single float/int values, entropy is 0
+                entropy_values.append(0.0)
+            elif isinstance(output, np.ndarray) and output.ndim == 1:
+                # For 1D numpy arrays, calculate entropy
+                entropy = -np.sum(output * np.log(output + 1e-10))  # Avoid log(0)
+                entropy_values.append(entropy)
+            else:
+                raise ValueError('Unsupported output type: must be float, int, or 1D numpy array.')
+        return np.array(entropy_values)
 
     def dead_neurons_detection(self, outputs):
         """
