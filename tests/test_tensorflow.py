@@ -5,10 +5,8 @@ from unittest.mock import patch, MagicMock
 import numpy as np
 
 class TestEregionTensorFlow(unittest.TestCase):
-    @patch('eregion.base.requests.get')
     @patch('eregion.base.requests.post')
-    def setUp(self, mock_post, mock_get):
-        mock_get.return_value = MagicMock(status_code=404)
+    def setUp(self, mock_post):
         mock_post.return_value = MagicMock(status_code=200, json=lambda: {'id': 'test_id'})
 
         self.model = tf.keras.Sequential([
@@ -40,13 +38,17 @@ class TestEregionTensorFlow(unittest.TestCase):
         self.tracker._start_auto_tracking()
         self.assertTrue(self.tracker.auto_track, "Auto-tracking should be enabled.")
 
-        self.tracker.model.build((None, 5))
-
         x_train = np.random.rand(10, 5)
         _ = self.tracker.model(x_train)
 
         self.assertGreater(len(self.tracker.data_buffer), 0,
                            "After forward pass, data buffer should contain tracking data.")
+
+        for item in self.tracker.data_buffer:
+            self.assertIn('layer', item)
+            self.assertIn('output_shape', item)
+            self.assertIn('output_mean', item)
+            self.assertIn('output_std', item)
 
         self.tracker.push()
         mock_post.assert_called()
@@ -57,6 +59,22 @@ class TestEregionTensorFlow(unittest.TestCase):
         with self.assertRaises(TypeError):
             et("not a model", "test", "api_key")
 
+    @patch('eregion.base.requests.post')
+    def test_prepare_metrics(self, mock_post):
+        mock_post.return_value = MagicMock(status_code=200)
+
+        x_train = np.random.rand(100, 5)
+        y_train = np.random.rand(100, 1)
+        self.tracker.model.fit(x_train, y_train, epochs=1, verbose=0)
+
+        # populate the data buffer
+        self.tracker.model(x_train)
+
+        metrics = self.tracker._prepare_metrics()
+
+        self.assertIn('entropy', metrics)
+        self.assertIn('dead_neurons', metrics)
+        self.assertIn('layer_activation_distribution', metrics)
 
 if __name__ == "__main__":
     unittest.main()

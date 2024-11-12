@@ -29,41 +29,64 @@ class EregionTensorFlow(Eregion):
             def call(self, inputs):
                 metrics = {
                     'layer': self.__class__.__name__,
-                    'output': tf.nest.map_structure(
-                        lambda x: x.numpy().tolist() if isinstance(x, tf.Tensor) and hasattr(x, 'numpy') else x,
-                        inputs),
+                    'output_shape': tf.nest.map_structure(lambda x: x.shape.as_list() if hasattr(x, 'shape') else None,
+                                                          inputs),
+                    'output_mean': tf.nest.map_structure(
+                        lambda x: tf.reduce_mean(x) if isinstance(x, tf.Tensor) else None, inputs),
+                    'output_std': tf.nest.map_structure(
+                        lambda x: tf.math.reduce_std(x) if isinstance(x, tf.Tensor) else None, inputs),
                 }
                 self.tracker.data_buffer.append(metrics)
                 return inputs
 
-        new_layers = []
-        for layer in self.model.layers:
-            new_layers.append(layer)
-            new_layers.append(TrackingLayer(self))
+        if isinstance(self.model, tf.keras.Sequential):
+            new_layers = []
+            for layer in self.model.layers:
+                new_layers.append(layer)
+                new_layers.append(TrackingLayer(self))
+            self.model = tf.keras.Sequential(new_layers)
+        else:
+            # For non-Sequential models - note to self add a more rigorous test
+            original_call = self.model.call
 
-        self.model = tf.keras.Sequential(new_layers)
-        print(f"Auto-tracking started. Tracking layers added to {len(new_layers) // 2} modules.")
+            def new_call(inputs, training=None, mask=None):
+                outputs = original_call(inputs, training=training, mask=mask)
+                TrackingLayer(self)(outputs)
+                return outputs
+
+            self.model.call = new_call
+
+        print(f"Auto-tracking started for model of type {type(self.model).__name__}.")
 
     def _prepare_metrics(self):
-        """Compute custom metrics, including gradient norm, entropy, dead neurons, and activations."""
+        """Compute custom metrics, including entropy, dead neurons, and activations."""
+        metrics = {}
 
-        # Calculate gradient norm if gradients are available
-        gradients = self.model.optimizer.get_gradients(self.model.total_loss, self.model.trainable_variables)
-        grad_norm = self.analytics.gradient_norm([g.numpy() for g in gradients if g is not None])
+        try:
+            outputs = []
+            for item in self.data_buffer:
+                if 'output_mean' in item:
+                    try:
+                        output = tf.keras.backend.get_value(item['output_mean'])
+                    except:
+                        output = item['output_mean']
+                    outputs.append(output)
 
-        # Collect outputs from tracked layers for additional analytics
-        outputs = [item['output'] for item in self.data_buffer if 'output' in item]
+            concrete_outputs = [tf.keras.backend.get_value(output) if tf.is_tensor(output) else output for output in
+                                outputs]
 
-        return {
-            'gradient_norm': grad_norm,
-            'entropy': self.analytics.entropy_of_predictions(outputs),
-            'dead_neurons': self.analytics.dead_neurons_detection(outputs),
-            'layer_activation_distribution': self.analytics.layer_activation_distribution(outputs)
-        }
+            metrics.update({
+                'entropy': self.analytics.entropy_of_predictions(concrete_outputs),
+                'dead_neurons': self.analytics.dead_neurons_detection(concrete_outputs),
+                'layer_activation_distribution': self.analytics.layer_activation_distribution(concrete_outputs)
+            })
+        except Exception as e:
+            print(f"Error in preparing metrics: {e}")
+
+        return metrics
 
     def push(self, data=None):
         """Push tracked data to the API and clear buffer post-push."""
-
         if not self.network_id:
             raise Exception("Network ID not found. Ensure the model was created successfully.")
 
@@ -71,7 +94,11 @@ class EregionTensorFlow(Eregion):
             self.data_buffer.append(data)
 
         if self.data_buffer:
-            combined_data = {'metrics': self.data_buffer}
+            try:
+                metrics = self._prepare_metrics()
+                combined_data = {'metrics': metrics, 'data': self.data_buffer}
 
-            super().push(combined_data)  # Push combined data
-            self.data_buffer.clear()  # Clear buffer after push
+                super().push(combined_data)  # Push combined data
+                self.data_buffer.clear()  # Clear buffer after push
+            except Exception as e:
+                print(f"Error during push operation: {e}")
