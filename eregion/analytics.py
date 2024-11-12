@@ -22,18 +22,44 @@ class EregionAnalytics:
                 'f1_score': f1_score(y_true, y_pred)
             }
 
-    def entropy_of_predictions(self, probabilities):
+    def entropy_of_predictions(self, outputs):
         """
-        Calculates the entropy of the predictions to measure uncertainty.
-        """
-        entropy = -np.sum(probabilities * np.log(probabilities + 1e-9), axis=1)  # 1e-9 to avoid log(0)
-        return np.mean(entropy)
+        Calculate the entropy of predictions.
 
-    def dead_neurons_detection(self, activations):
+        :param outputs: List of model outputs (each output should be a list or numpy array)
+        :return: Average entropy across all outputs
+        """
+        if not outputs:
+            return None
+
+        entropies = []
+        for output in outputs:
+            # Convert to numpy array if it's a list
+            if isinstance(output, list):
+                output = np.array(output)
+
+            # Ensure the output is 2D
+            if output.ndim == 1:
+                output = output.reshape(1, -1)
+
+            # Apply softmax to get probabilities
+            probabilities = np.exp(output) / np.sum(np.exp(output), axis=1, keepdims=True)
+
+            # Calculate entropy
+            entropy = -np.sum(probabilities * np.log(probabilities + 1e-9), axis=1)  # 1e-9 to avoid log(0)
+            entropies.extend(entropy)
+
+        return np.mean(entropies)
+
+    def dead_neurons_detection(self, outputs):
         """
         Detects dead neurons by analyzing the activations of neurons in a layer.
         A neuron is considered 'dead' if its activation is 0 for the entire batch.
         """
+        if not outputs:
+            return None
+
+        activations = np.array(outputs)
         dead_neurons = np.mean(np.all(activations == 0, axis=0))
         return dead_neurons
 
@@ -67,21 +93,23 @@ class EregionAnalytics:
             return {'overfit_detected': True, 'overfit_percentage': overfit_percentage}
         return {'overfit_detected': False, 'overfit_percentage': 0}
 
-    def layer_activation_distribution(self, activations):
+    def layer_activation_distribution(self, outputs):
         """
         Analyzes the activation distribution for each layer.
         """
-        distributions = {}
-        for layer_name, activation in activations.items():
-            activation_mean = np.mean(activation)
-            activation_std = np.std(activation)
-            non_zero_ratio = np.mean(activation != 0)
-            distributions[layer_name] = {
-                'mean': activation_mean,
-                'std': activation_std,
-                'non_zero_ratio': non_zero_ratio  # Used to detect dead neurons
-            }
-        return distributions
+        if not outputs:
+            return None
+
+        activations = np.array(outputs)
+        activation_mean = np.mean(activations)
+        activation_std = np.std(activations)
+        non_zero_ratio = np.mean(activations != 0)
+
+        return {
+            'mean': activation_mean,
+            'std': activation_std,
+            'non_zero_ratio': non_zero_ratio  # Used to detect dead neurons
+        }
 
     def compute_efficiency(self, training_time, memory_usage):
         """
