@@ -7,7 +7,7 @@ from typing import Any
 class EregionTensorFlow(Eregion):
     def __init__(self, model: tf.keras.Model, name: str, API_KEY: str, auto_track: bool = False, reset: bool = True):
         if not isinstance(model, tf.keras.Model):
-            raise TypeError("Expected a TensorFlow model (tf.keras.Model), but got {}".format(type(model)))
+            raise TypeError(f"Expected a TensorFlow model (tf.keras.Model), but got {type(model)}")
 
         super().__init__(name, API_KEY, reset=reset)
         self.model = model
@@ -19,67 +19,59 @@ class EregionTensorFlow(Eregion):
             self._start_auto_tracking()
 
     def _start_auto_tracking(self):
-        """
-        Auto-tracking for TensorFlow using custom training steps.
-        Pushes data after every training step update.
-        """
-        original_train_step = self.model.train_step
+        """Auto-tracking using custom layers for every forward pass."""
 
-        @tf.function
-        def _start_auto_tracking(self):
-            """
-            Auto-tracking for TensorFlow using custom training steps.
-            Pushes data after every training step update.
-            """
-            original_train_step = self.model.train_step
+        class TrackingLayer(tf.keras.layers.Layer):
+            def __init__(self, tracker, **kwargs):
+                super().__init__(**kwargs)
+                self.tracker = tracker
 
-            @tf.function
-            def custom_train_step(data: Any):
-                result = original_train_step(data)
+            def call(self, inputs):
+                metrics = {
+                    'layer': self.__class__.__name__,
+                    'output': tf.nest.map_structure(
+                        lambda x: x.numpy().tolist() if isinstance(x, tf.Tensor) and hasattr(x, 'numpy') else x,
+                        inputs),
+                }
+                self.tracker.data_buffer.append(metrics)
+                return inputs
 
-                # We can now collect metrics at the end of the step in eager mode
-                tf.keras.backend.set_learning_phase(False) # Ensures we're in inference mode when gathering metrics
+        new_layers = []
+        for layer in self.model.layers:
+            new_layers.append(layer)
+            new_layers.append(TrackingLayer(self))
 
-                # Collect metrics: evaluate results after the training step
-                metrics = {}
-                for metric in self.model.metrics:
-                    # Evaluate the result if it's a symbolic tensor
-                    metrics[metric.name] = metric.result().numpy()
-                self.data_buffer.append(metrics)
+        self.model = tf.keras.Sequential(new_layers)
+        print(f"Auto-tracking started. Tracking layers added to {len(new_layers) // 2} modules.")
 
-                # Collect custom metrics like gradient norm, entropy, and dead neurons detection
-                grad_norm = self.analytics.gradient_norm([param.numpy() for param in self.model.trainable_variables])
-                entropy = self.analytics.entropy_of_predictions(self.data_buffer)
-                dead_neurons = self.analytics.dead_neurons_detection(self.data_buffer)
-                self.data_buffer.append({
-                    'gradient_norm': grad_norm,
-                    'entropy': entropy,
-                    'dead_neurons': dead_neurons,
-                    'layer_activation_distribution': self.analytics.layer_activation_distribution(self.data_buffer)
-                })
+    def _prepare_metrics(self):
+        """Compute custom metrics, including gradient norm, entropy, dead neurons, and activations."""
 
-                # Push the collected data after every training step
-                self.push()
+        # Calculate gradient norm if gradients are available
+        gradients = self.model.optimizer.get_gradients(self.model.total_loss, self.model.trainable_variables)
+        grad_norm = self.analytics.gradient_norm([g.numpy() for g in gradients if g is not None])
 
-                return result
+        # Collect outputs from tracked layers for additional analytics
+        outputs = [item['output'] for item in self.data_buffer if 'output' in item]
 
-            # Override the train step method to include auto-pushing
-            self.model.train_step = custom_train_step
+        return {
+            'gradient_norm': grad_norm,
+            'entropy': self.analytics.entropy_of_predictions(outputs),
+            'dead_neurons': self.analytics.dead_neurons_detection(outputs),
+            'layer_activation_distribution': self.analytics.layer_activation_distribution(outputs)
+        }
 
     def push(self, data=None):
-        """
-        Push tracked data to the API whenever there is an update.
-        """
+        """Push tracked data to the API and clear buffer post-push."""
+
         if not self.network_id:
-            raise Exception("Network ID not found. Make sure the model exists or was created successfully.")
+            raise Exception("Network ID not found. Ensure the model was created successfully.")
 
-        if self.data_buffer or data:
-            # Ensure that the data is a dictionary, not an array
-            if data:
-                self.data_buffer.append(data)
+        if data:
+            self.data_buffer.append(data)
 
-            # Combine the data_buffer list into a single dictionary
-            combined_data = {'metrics': self.data_buffer}  # Wrap the data_buffer in a dictionary
+        if self.data_buffer:
+            combined_data = {'metrics': self.data_buffer}
 
-            super().push(combined_data)  # Pass the combined dictionary
-            self.data_buffer = []  # Clear buffer after pushing
+            super().push(combined_data)  # Push combined data
+            self.data_buffer.clear()  # Clear buffer after push

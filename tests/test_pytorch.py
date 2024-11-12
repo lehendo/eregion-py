@@ -33,5 +33,9 @@ class TestEregionPyTorch(unittest.TestCase):
 
         self.assertEqual(len(self.tracker.data_buffer), 0, "After push is called, data buffer should be empty.")
 
+    #def test_invalid_model_type(self):
+        #with self.assertRaises(TypeError):
+            #ep("not a model", "test", "api_key")
+
 if __name__ == "__main__":
     unittest.main()
