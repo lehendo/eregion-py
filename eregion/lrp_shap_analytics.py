@@ -6,7 +6,7 @@ from typing import List, Dict
 from torch import nn
 
 
-class NeuralNetworkAnalytics:
+class LrpShapAnalytics:
     def __init__(self, model, data_loader=None, framework='pytorch'):
         """
         Initialize a model + data loader.
@@ -20,4 +20,5 @@ class NeuralNetworkAnalytics:
             self.model.to(self.device)
             self.model.eval()
 
-    
+
+
