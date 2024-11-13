@@ -23,6 +23,12 @@ class EregionAnalytics:
             }
 
     def entropy_of_predictions(self, outputs):
+        """
+        Calculate the entropy of predictions.
+        :param outputs: List of model outputs (each output should be a list or numpy array)
+        :return: Average entropy across all outputs
+        """
+
         entropy_values = []
         for output in outputs:
             if isinstance(output, (float, int)):
