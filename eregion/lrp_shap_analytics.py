@@ -11,7 +11,9 @@ from zennit.rules import Epsilon
 
 import innvestigate
 
+
 class LrpShapAnalytics:
+
     def __init__(self, model, data_loader=None, framework='pytorch'):
         """
         Initialize a model + data loader.
