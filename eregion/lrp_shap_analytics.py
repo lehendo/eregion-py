@@ -112,3 +112,14 @@ class LrpShapAnalytics:
                 relevance_per_layer[i] = relevance[layer.output]
 
         return relevance_per_layer
+
+    def compute_shap_relevance(self) -> Dict[int, np.ndarray]:
+        """
+        Compute/aggregate SHAP values for each neuron in each layer.
+        """
+        if self.framework == 'pytorch':
+            return self.compute_shap_pytorch()
+        elif self.framework == 'tensorflow':
+            return self.compute_shap_tensorflow()
+
+    
