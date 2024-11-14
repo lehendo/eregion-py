@@ -75,3 +75,40 @@ class LrpShapAnalytics:
                 relevance_per_layer[i] = relevance[layer].detach()
 
         return relevance_per_layer
+
+    def compute_lrp_tensorflow(self) -> Dict[int, np.ndarray]:
+        """
+        Compute LRP for TensorFlow models using innvestigate.
+        """
+        relevance_scores = {}
+
+        analyzer = innvestigate.create_analyzer("lrp.epsilon", self.model)
+
+        for inputs, _ in self.data_loader:
+            relevance_per_layer = self.run_lrp_tensorflow(analyzer, inputs)
+
+            for layer_idx, rel in relevance_per_layer.items():
+                if layer_idx not in relevance_scores:
+                    relevance_scores[layer_idx] = []
+                relevance_scores[layer_idx].append(rel.numpy())
+
+        for layer_idx, rel_list in relevance_scores.items():
+            relevance_scores[layer_idx] = np.mean(rel_list, axis=0)
+
+        return relevance_scores
+
+    def run_lrp_tensorflow(self, analyzer, inputs):
+        """
+        Run LRP on the model for given inputs using innvestigate.
+        """
+        relevance_per_layer = {}
+
+        # get relevance scores
+        relevance = analyzer.analyze(inputs)
+
+        # Get relevance for each layer
+        for i, layer in enumerate(self.model.layers):
+            if 'dense' in layer.name or 'conv' in layer.name:
+                relevance_per_layer[i] = relevance[layer.output]
+
+        return relevance_per_layer
