@@ -185,4 +185,22 @@ class LrpShapAnalytics:
 
         return normalized_relevance
 
-    
+    def prepare_visualization_data(self) -> Dict[str, Dict[int, np.ndarray]]:
+        """
+        Prepare data for visualization.
+        """
+        print("Computing LRP relevance...")
+        lrp_relevance = self.compute_lrp_relevance()
+        print("Computing SHAP relevance...")
+        shap_relevance = self.compute_shap_relevance()
+
+        print("Normalizing relevance scores...")
+        normalized_lrp = self.normalize_scores(lrp_relevance)
+        normalized_shap = self.normalize_scores(shap_relevance)
+
+        visualization_data = {
+            'lrp': normalized_lrp,
+            'shap': normalized_shap
+        }
+
+        return visualization_data
