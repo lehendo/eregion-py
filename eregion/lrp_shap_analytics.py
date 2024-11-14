@@ -174,4 +174,15 @@ class LrpShapAnalytics:
 
         return relevance_scores
 
+    def normalize_scores(self, relevance_dict: Dict[int, np.ndarray]) -> Dict[int, np.ndarray]:
+        """
+        Normalize relevance scores to [0, 1] - meant for visualization.
+        """
+        normalized_relevance = {}
+        for layer_idx, relevance in relevance_dict.items():
+            min_val, max_val = relevance.min(), relevance.max()
+            normalized_relevance[layer_idx] = (relevance - min_val) / (max_val - min_val)
+
+        return normalized_relevance
+
     
