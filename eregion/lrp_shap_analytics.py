@@ -187,6 +187,13 @@ class LrpShapAnalytics:
 
         return normalized_relevance
 
+    def compute_combined_impact_scores(self, lrp_scores: Dict[int, np.ndarray], shap_scores: Dict[int, np.ndarray],
+                                       alpha=0.5) -> Dict[int, np.ndarray]:
+        combined_scores = {}
+        for layer_idx in lrp_scores.keys():
+            combined_scores[layer_idx] = alpha * lrp_scores[layer_idx] + (1 - alpha) * shap_scores[layer_idx]
+        return combined_scores
+
     def prepare_visualization_data(self) -> Dict[str, Dict[int, np.ndarray]]:
         """
         Prepare data for visualization.
@@ -200,9 +207,13 @@ class LrpShapAnalytics:
         normalized_lrp = self.normalize_scores(lrp_relevance)
         normalized_shap = self.normalize_scores(shap_relevance)
 
+        print("Computing combined relevance...")
+        combined_impact = self.compute_combined_impact_scores(normalized_lrp, normalized_shap)
+
         visualization_data = {
             'lrp': normalized_lrp,
-            'shap': normalized_shap
+            'shap': normalized_shap,
+            'combined_impact': combined_impact
         }
 
         return visualization_data
