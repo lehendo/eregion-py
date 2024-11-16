@@ -31,10 +31,21 @@ class LrpShapAnalytics:
         """
         Compute/aggregate LRP relevance scores for each neuron in each layer.
         """
-        if self.framework == 'pytorch':
-            return self.compute_lrp_pytorch()
-        elif self.framework == 'tensorflow':
-            return self.compute_lrp_tensorflow()
+        relevance_scores = {}
+
+        for inputs, _ in self.data_loader:
+            inputs = inputs.to(self.device)
+            relevance_per_layer = self.run_lrp_pytorch(inputs)
+
+            for layer_idx, rel in relevance_per_layer.items():
+                if layer_idx not in relevance_scores:
+                    relevance_scores[layer_idx] = []
+                relevance_scores[layer_idx].append(rel.cpu().detach().numpy())
+
+        for layer_idx, rel_list in relevance_scores.items():
+            relevance_scores[layer_idx] = np.mean(rel_list, axis=0)
+
+        return relevance_scores
 
     def compute_lrp_pytorch(self) -> Dict[int, np.ndarray]:
         """
