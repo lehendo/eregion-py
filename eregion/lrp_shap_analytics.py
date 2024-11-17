@@ -153,6 +153,26 @@ class LrpShapAnalytics:
 
         return relevance_scores
 
+    def run_shap_pytorch(self, inputs, baseline, num_samples):
+        """
+        Approximate SHAP for PyTorch.
+        """
+        shap_values = {}
+
+        for i, layer in enumerate(self.model.children()):
+            if hasattr(layer, 'weight'):
+                contributions = []
+                for _ in range(num_samples):
+                    subset = torch.randperm(inputs.size(1))[:i + 1]
+                    perturbed = inputs.clone()
+                    perturbed[:, subset] = baseline[:, subset]
+                    f_with = layer(perturbed)
+                    f_without = layer(inputs)
+                    contributions.append((f_with - f_without).mean(dim=0).cpu().numpy())
+                shap_values[i] = np.mean(contributions, axis=0)
+
+        return shap_values
+
     def compute_shap_tensorflow(self) -> Dict[int, np.ndarray]:
         """
         Compute SHAP values for TensorFlow using DeepExplainer.
