@@ -133,23 +133,21 @@ class LrpShapAnalytics:
 
     def compute_shap_pytorch(self) -> Dict[int, np.ndarray]:
         """
-        Compute SHAP values for PyTorch.
+        SHAP for PyTorch.
         """
         relevance_scores = {}
-
-        explainer = shap.DeepExplainer(self.model, next(iter(self.data_loader))[0].to(self.device))
+        baseline = torch.zeros_like(next(iter(self.data_loader))[0])
+        num_samples = 50
 
         for inputs, _ in self.data_loader:
             inputs = inputs.to(self.device)
-            shap_values = explainer.shap_values(inputs)
+            shap_values = self.run_shap_pytorch(inputs, baseline, num_samples)
 
-            # returns a list of arrays with each corresponding to an output neuron
-            for layer_idx, shap_val in enumerate(shap_values):
+            for layer_idx, shap_val in shap_values.items():
                 if layer_idx not in relevance_scores:
                     relevance_scores[layer_idx] = []
-                relevance_scores[layer_idx].append(shap_val.mean(axis=0))
+                relevance_scores[layer_idx].append(shap_val)
 
-        # Average SHAP values
         for layer_idx, shap_list in relevance_scores.items():
             relevance_scores[layer_idx] = np.mean(shap_list, axis=0)
 
