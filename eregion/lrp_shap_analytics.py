@@ -99,19 +99,26 @@ class LrpShapAnalytics:
 
         return relevance_scores
 
-    def run_lrp_tensorflow(self, analyzer, inputs):
+    def run_lrp_tensorflow(self, inputs):
         """
-        Run LRP on the model for given inputs using innvestigate.
+        Backward propagation (relevance) for TensorFlow models.
         """
         relevance_per_layer = {}
+        activations = [inputs]
 
-        # get relevance scores
-        relevance = analyzer.analyze(inputs)
+        x = inputs
+        for layer in self.model.layers:
+            x = layer(x)
+            activations.append(x)
 
-        # Get relevance for each layer
-        for i, layer in enumerate(self.model.layers):
-            if 'dense' in layer.name or 'conv' in layer.name:
-                relevance_per_layer[i] = relevance[layer.output]
+        relevance = activations[-1]
+        for i, layer in reversed(list(enumerate(self.model.layers))):
+            if isinstance(layer, tf.keras.layers.Dense) or isinstance(layer, tf.keras.layers.Conv2D):
+                weights = layer.get_weights()[0]
+                z = tf.matmul(activations[i], tf.transpose(weights)) + 1e-9
+                s = relevance / tf.reduce_sum(z, axis=1, keepdims=True)
+                relevance = tf.matmul(s, weights)
+                relevance_per_layer[i] = relevance
 
         return relevance_per_layer
 
