@@ -133,7 +133,7 @@ class LrpShapAnalytics:
 
     def compute_shap_pytorch(self) -> Dict[int, np.ndarray]:
         """
-        SHAP for PyTorch.
+        Compute SHAP for PyTorch.
         """
         relevance_scores = {}
         baseline = torch.zeros_like(next(iter(self.data_loader))[0])
@@ -175,27 +175,21 @@ class LrpShapAnalytics:
 
     def compute_shap_tensorflow(self) -> Dict[int, np.ndarray]:
         """
-        Compute SHAP values for TensorFlow using DeepExplainer.
+        Compute SHAP for TensorFlow models.
         """
         relevance_scores = {}
+        baseline = tf.zeros_like(next(iter(self.data_loader))[0])
+        num_samples = 50
 
-        # SHAP requires a background dataset to initialize DeepExplainer
-        # Assume `self.data_loader` is an iterable, so we'll take a subset as background
-        background_data = next(iter(self.data_loader))[:100]  # Use the first 100 samples as background data
+        for inputs, _ in self.data_loader:
+            inputs = tf.convert_to_tensor(inputs)
+            shap_values = self.run_shap_tensorflow(inputs, baseline, num_samples)
 
-        # Init DeepExplainer
-        explainer = shap.DeepExplainer(self.model, background_data)
-
-        for inputs in self.data_loader:
-            shap_values = explainer.shap_values(inputs)
-
-            # returns a list of arrays with each corresponding to an output neuron
-            for layer_idx, shap_val in enumerate(shap_values):
+            for layer_idx, shap_val in shap_values.items():
                 if layer_idx not in relevance_scores:
                     relevance_scores[layer_idx] = []
-                relevance_scores[layer_idx].append(shap_val.mean(axis=0))
+                relevance_scores[layer_idx].append(shap_val)
 
-        # Average SHAP values
         for layer_idx, shap_list in relevance_scores.items():
             relevance_scores[layer_idx] = np.mean(shap_list, axis=0)
 
