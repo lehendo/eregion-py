@@ -250,12 +250,12 @@ class LrpShapAnalytics:
         normalized_shap = self.normalize_scores(shap_relevance)
 
         print("Computing combined relevance...")
-        impact_scores = self.combine_lrp_shap_scores(lrp_relevance, shap_relevance)
+        combined_relevance = self.combine_lrp_shap_scores(normalized_lrp, normalized_shap)
 
         visualization_data = {
             'lrp': normalized_lrp,
             'shap': normalized_shap,
-            'impact': impact_scores
+            'combined': combined_relevance
         }
 
         return visualization_data
