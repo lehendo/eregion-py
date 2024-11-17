@@ -195,6 +195,26 @@ class LrpShapAnalytics:
 
         return relevance_scores
 
+    def run_shap_tensorflow(self, inputs, baseline, num_samples):
+        """
+        Approximate SHAP TensorFlow.
+        """
+        shap_values = {}
+
+        for i, layer in enumerate(self.model.layers):
+            if isinstance(layer, tf.keras.layers.Dense) or isinstance(layer, tf.keras.layers.Conv2D):
+                contributions = []
+                for _ in range(num_samples):
+                    subset = tf.random.shuffle(tf.range(inputs.shape[1]))[:i + 1]
+                    perturbed = tf.identity(inputs)
+                    perturbed[:, subset] = baseline[:, subset]
+                    f_with = layer(perturbed)
+                    f_without = layer(inputs)
+                    contributions.append(tf.reduce_mean(f_with - f_without, axis=0).numpy())
+                shap_values[i] = np.mean(contributions, axis=0)
+
+        return shap_values
+
     def normalize_scores(self, relevance_dict: Dict[int, np.ndarray]) -> Dict[int, np.ndarray]:
         """
         Normalize relevance scores to [0, 1] - meant for visualization.
