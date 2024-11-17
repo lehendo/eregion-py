@@ -1,15 +1,8 @@
 import numpy as np
 import torch
-import shap
 import tensorflow as tf
 from typing import List, Dict
 from torch import nn
-
-from zennit.torchvision import ResNetCanonizer # not needed rn
-from zennit.composites import EpsilonPlusFlat
-from zennit.rules import Epsilon
-
-import innvestigate
 
 
 class LrpShapAnalytics:

@@ -3,6 +3,3 @@ tensorflow
 numpy
 requests
 scikit-learn
-zennit
-innvestigate
-shap
