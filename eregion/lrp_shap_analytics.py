@@ -38,13 +38,12 @@ class LrpShapAnalytics:
 
     def compute_lrp_pytorch(self) -> Dict[int, np.ndarray]:
         """
-        Compute LRP relevance for PyTorch models using Zennit.
+        LRP for PyTorch models.
         """
         relevance_scores = {}
 
         for inputs, _ in self.data_loader:
             inputs = inputs.to(self.device)
-
             relevance_per_layer = self.run_lrp_pytorch(inputs)
 
             for layer_idx, rel in relevance_per_layer.items():
