@@ -58,22 +58,24 @@ class LrpShapAnalytics:
 
     def run_lrp_pytorch(self, inputs):
         """
-        Run LRP on the model for given inputs using Zennit.
+        Back propagation (relevance) for PyTorch models.
         """
         relevance_per_layer = {}
+        activations = [inputs]
 
-        composite = EpsilonPlusFlat(Epsilon())  # Standard LRP rule for stability
+        x = inputs
+        for layer in self.model.children():
+            x = layer(x)
+            activations.append(x)
 
-        with composite.context(self.model) as modified_model:
-            # get outputs
-            outputs = modified_model(inputs)
-            # Propagate relevance
-            relevance = modified_model.relprop(outputs)
-
-        # Gathering relevance scores every layer
-        for i, layer in enumerate(self.model.children()):
+        relevance = activations[-1].clone().detach()
+        for i, layer in reversed(list(enumerate(self.model.children()))):
             if hasattr(layer, 'weight'):
-                relevance_per_layer[i] = relevance[layer].detach()
+                weights = layer.weight
+                z = torch.matmul(activations[i], weights.T) + 1e-9
+                s = relevance / z.sum(dim=1, keepdim=True)
+                relevance = torch.matmul(s, weights)
+                relevance_per_layer[i] = relevance.clone()
 
         return relevance_per_layer
 
