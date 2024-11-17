@@ -81,14 +81,13 @@ class LrpShapAnalytics:
 
     def compute_lrp_tensorflow(self) -> Dict[int, np.ndarray]:
         """
-        Compute LRP for TensorFlow models using innvestigate.
+        LRP for TensorFlow models.
         """
         relevance_scores = {}
 
-        analyzer = innvestigate.create_analyzer("lrp.epsilon", self.model)
-
         for inputs, _ in self.data_loader:
-            relevance_per_layer = self.run_lrp_tensorflow(analyzer, inputs)
+            inputs = tf.convert_to_tensor(inputs)
+            relevance_per_layer = self.run_lrp_tensorflow(inputs)
 
             for layer_idx, rel in relevance_per_layer.items():
                 if layer_idx not in relevance_scores:
