@@ -230,13 +230,11 @@ class LrpShapAnalytics:
         """
         Combine LRP and SHAP relevance scores.
         """
-        impact_scores = {}
-
+        combined_scores = {}
         for layer_idx in lrp_relevance.keys():
-            combined_score = (lrp_relevance[layer_idx] + shap_relevance[layer_idx]) / 2 #i can make this weighted - gotta do research
-            impact_scores[layer_idx] = combined_score
+            combined_scores[layer_idx] = (lrp_relevance[layer_idx] + shap_relevance[layer_idx]) / 2.0 #need to do more research
 
-        return impact_scores
+        return combined_scores
 
     def prepare_visualization_data(self) -> Dict[str, Dict[int, np.ndarray]]:
         """
