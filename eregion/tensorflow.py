@@ -4,10 +4,20 @@ from .analytics import EregionAnalytics
 from typing import Any
 
 
+# TODO: Make lighter and confirm that model gradients work
 class EregionTensorFlow(Eregion):
-    def __init__(self, model: tf.keras.Model, name: str, API_KEY: str, auto_track: bool = False, reset: bool = True):
+    def __init__(
+        self,
+        model: tf.keras.Model,
+        name: str,
+        API_KEY: str,
+        auto_track: bool = False,
+        reset: bool = True,
+    ):
         if not isinstance(model, tf.keras.Model):
-            raise TypeError(f"Expected a TensorFlow model (tf.keras.Model), but got {type(model)}")
+            raise TypeError(
+                f"Expected a TensorFlow model (tf.keras.Model), but got {type(model)}"
+            )
 
         super().__init__(name, API_KEY, reset=reset)
         self.model = model
@@ -28,13 +38,23 @@ class EregionTensorFlow(Eregion):
 
             def call(self, inputs):
                 metrics = {
-                    'layer': self.__class__.__name__,
-                    'output_shape': tf.nest.map_structure(lambda x: x.shape.as_list() if hasattr(x, 'shape') else None,
-                                                          inputs),
-                    'output_mean': tf.nest.map_structure(
-                        lambda x: tf.reduce_mean(x) if isinstance(x, tf.Tensor) else None, inputs),
-                    'output_std': tf.nest.map_structure(
-                        lambda x: tf.math.reduce_std(x) if isinstance(x, tf.Tensor) else None, inputs),
+                    "layer": self.__class__.__name__,
+                    "output_shape": tf.nest.map_structure(
+                        lambda x: x.shape.as_list() if hasattr(x, "shape") else None,
+                        inputs,
+                    ),
+                    "output_mean": tf.nest.map_structure(
+                        lambda x: (
+                            tf.reduce_mean(x) if isinstance(x, tf.Tensor) else None
+                        ),
+                        inputs,
+                    ),
+                    "output_std": tf.nest.map_structure(
+                        lambda x: (
+                            tf.math.reduce_std(x) if isinstance(x, tf.Tensor) else None
+                        ),
+                        inputs,
+                    ),
                 }
                 self.tracker.data_buffer.append(metrics)
                 return inputs
@@ -65,21 +85,29 @@ class EregionTensorFlow(Eregion):
         try:
             outputs = []
             for item in self.data_buffer:
-                if 'output_mean' in item:
+                if "output_mean" in item:
                     try:
-                        output = tf.keras.backend.get_value(item['output_mean'])
+                        output = tf.keras.backend.get_value(item["output_mean"])
                     except:
-                        output = item['output_mean']
+                        output = item["output_mean"]
                     outputs.append(output)
 
-            concrete_outputs = [tf.keras.backend.get_value(output) if tf.is_tensor(output) else output for output in
-                                outputs]
+            concrete_outputs = [
+                tf.keras.backend.get_value(output) if tf.is_tensor(output) else output
+                for output in outputs
+            ]
 
-            metrics.update({
-                'entropy': self.analytics.entropy_of_predictions(concrete_outputs),
-                'dead_neurons': self.analytics.dead_neurons_detection(concrete_outputs),
-                'layer_activation_distribution': self.analytics.layer_activation_distribution(concrete_outputs)
-            })
+            metrics.update(
+                {
+                    "entropy": self.analytics.entropy_of_predictions(concrete_outputs),
+                    "dead_neurons": self.analytics.dead_neurons_detection(
+                        concrete_outputs
+                    ),
+                    "layer_activation_distribution": self.analytics.layer_activation_distribution(
+                        concrete_outputs
+                    ),
+                }
+            )
         except Exception as e:
             print(f"Error in preparing metrics: {e}")
 
@@ -88,7 +116,9 @@ class EregionTensorFlow(Eregion):
     def push(self, data=None):
         """Push tracked data to the API and clear buffer post-push."""
         if not self.network_id:
-            raise Exception("Network ID not found. Ensure the model was created successfully.")
+            raise Exception(
+                "Network ID not found. Ensure the model was created successfully."
+            )
 
         if data:
             self.data_buffer.append(data)
@@ -96,7 +126,7 @@ class EregionTensorFlow(Eregion):
         if self.data_buffer:
             try:
                 metrics = self._prepare_metrics()
-                combined_data = {'metrics': metrics, 'data': self.data_buffer}
+                combined_data = {"metrics": metrics, "data": self.data_buffer}
 
                 super().push(combined_data)  # Push combined data
                 self.data_buffer.clear()  # Clear buffer after push

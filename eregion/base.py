@@ -1,6 +1,7 @@
 import requests
 
 
+# TODO: Modify API reqs and check step-by-step (write unittests) after refractor schema
 class Eregion:
     API_URL = (
         "https://www.eregion.dev/api/v1/network"  # The current Eregion API endpoint

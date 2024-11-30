@@ -1,53 +1,28 @@
-from typing import List
-
-
 class DataBuffer:
     def __init__(self):
         """
         Initialize DataBuffer with dictionary of all hook's data being logged per training iteration.
         """
-        self.buffer = {
-            "outputs": [],
-            "activations": [],
-            "gradients": [],
-            "labels": [],
-            "predictions": [],
-        }
+        self.data = {}
 
-    def get(self, metric: str) -> List:
-        """
-        Obtain the data of a specific metric.
-        """
-        try:
-            return self.buffer[metric]
-        except KeyError:
-            raise Exception(f"The metric '{metric}' was not found in the data buffer.")
+    def add_layer_data(self, epoch: int, layer_name: str, metrics: dict):
+        if epoch not in self.data:
+            self.data[epoch] = {}
+        if layer_name not in self.data[epoch]:
+            self.data[epoch][layer_name] = {}
+        self.data[epoch][layer_name].update(metrics)
 
-    def update(self, metric: str, value):
-        """
-        Update or create new metric in DataBuffer.
-        (Later, this will be integral in adding multimodal features, etc. based off hooks in PyTorch, TF, etc. implementations)
-        """
-        if metric in self.buffer:
-            self.buffer[metric].append(value)
-            return
+    def add_model_data(self, epoch: int, metrics: dict):
+        if epoch not in self.data:
+            self.data[epoch] = {}
+        if "whole_network" not in self.data[epoch]:
+            self.data[epoch]["whole_network"] = {}
+        self.data[epoch]["whole_network"].update(metrics)
 
-        self.buffer[metric] = [value]
+    def get_layer_data(self, epoch: int, layer_name: str):
+        if layer_name in self.data.get(epoch, {}):
+            return self.data.get(epoch, {}).get(layer_name, {})
+        return self.data.get(epoch, {})
 
-    def reset(self):
-        """
-        Conduct a hard reset, clearing out the DataBuffer altogether.
-        """
-        self.buffer = {
-            "outputs": [],
-            "activations": [],
-            "gradients": [],
-            "labels": [],
-            "predictions": [],
-        }
-
-    def clear(self, metric: str):
-        """
-        Refreshing a specific metric
-        """
-        self.buffer[metric] = []
+    def get_model_data(self, epoch: int):
+        return self.data.get(epoch, {}).get("whole_network", {})
