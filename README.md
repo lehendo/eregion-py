@@ -1,4 +1,4 @@
-# 🧠 Eregion - Neural Network Analytics & Monitoring
+# Eregion - Neural Network Analytics & Monitoring
 
 > **Real-time neural network monitoring and analytics for PyTorch and TensorFlow**
 
@@ -13,7 +13,7 @@
 [![TensorFlow](https://img.shields.io/badge/TensorFlow-2.0+-orange.svg)](https://tensorflow.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## 🚀 What is Eregion?
+## What is Eregion?
 
 Eregion is a powerful Python library that provides **real-time monitoring and analytics** for your neural networks. Whether you're training models with PyTorch or TensorFlow, Eregion gives you deep insights into your model's behavior, layer activations, gradients, and performance metrics.
 
