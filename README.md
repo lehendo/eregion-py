@@ -6,7 +6,6 @@
 > 
 > **This project is deprecated and no longer in active development.**
 > 
-> While the code may still be functional, we recommend using alternative neural network monitoring solutions for production use.
 
 [![Python 3.7+](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-1.8+-red.svg)](https://pytorch.org/)
