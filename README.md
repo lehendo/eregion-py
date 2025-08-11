@@ -191,7 +191,7 @@ tracker.push({
 
 ### Development Setup
 ```bash
-git clone https://github.com/pratyaypandey/eregion.git
+[git clone https://github.com/pratyaypandey/eregion.git](https://github.com/lehendo/eregion-py.git)
 cd eregion
 pip install -e ".[dev]"
 pytest tests/
