@@ -34,7 +34,7 @@ pip install eregion
 Or install from source:
 
 ```bash
-git clone https://github.com/BitLegion/eregion.git
+git clone https://github.com/lehendo/eregion-py.git
 cd eregion
 pip install -e .
 ```
@@ -191,7 +191,7 @@ tracker.push({
 
 ### Development Setup
 ```bash
-https://github.com/lehendo/eregion-py.git
+git clone https://github.com/lehendo/eregion-py.git
 cd eregion
 pip install -e ".[dev]"
 pytest tests/
