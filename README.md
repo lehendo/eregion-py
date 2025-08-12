@@ -18,14 +18,14 @@ Eregion is a powerful Python library that provides **real-time monitoring and an
 
 ### ✨ Key Features
 
-- 🔍 **Layer-by-layer monitoring** - Track activations, gradients, and outputs from every layer
-- 📊 **Advanced analytics** - Dead neuron detection, entropy analysis, gradient norms
-- ☁️ **Cloud integration** - Push metrics to [eregion.dev](https://eregion.dev) for remote monitoring
-- 🔄 **Auto-tracking** - Automatically monitor your model during training
-- 🎯 **Framework agnostic** - Works seamlessly with PyTorch and TensorFlow
-- 📈 **Real-time metrics** - Get instant feedback on model performance
+- **Layer-by-layer monitoring** - Track activations, gradients, and outputs from every layer
+- **Advanced analytics** - Dead neuron detection, entropy analysis, gradient norms
+- **Cloud integration** - Push metrics to [eregion.dev](https://eregion.dev) for remote monitoring
+- **Auto-tracking** - Automatically monitor your model during training
+- **Framework agnostic** - Works seamlessly with PyTorch and TensorFlow
+- **Real-time metrics** - Get instant feedback on model performance
 
-## 🛠️ Installation
+## Installation
 
 ```bash
 pip install eregion
@@ -39,7 +39,7 @@ cd eregion
 pip install -e .
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### PyTorch Example
 
@@ -116,7 +116,7 @@ for epoch in range(10):
     })
 ```
 
-## 📊 Analytics Features
+## Analytics Features
 
 ### Layer Monitoring
 - **Activation tracking** - Monitor output distributions from each layer
@@ -133,7 +133,7 @@ for epoch in range(10):
 - **Historical tracking** - Compare performance across training runs
 - **Team collaboration** - Share model insights with your team
 
-## 🔧 Configuration
+## Configuration
 
 ### API Setup
 1. Sign up at [eregion.dev](https://eregion.dev)
@@ -169,7 +169,7 @@ tracker.push({
 })
 ```
 
-## 📈 What You Can Monitor
+## What You Can Monitor
 
 ### Training Metrics
 - Loss values and convergence
