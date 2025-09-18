@@ -1,5 +1,7 @@
 # Eregion - Neural Network Analytics & Monitoring
 
+## This project was awarded the Medici Grant by 1517 Fund and was named a Z-Fellows Finalist.
+
 > **Real-time neural network monitoring and analytics for PyTorch and TensorFlow**
 
 > ⚠️ **DEPRECATED** ⚠️
