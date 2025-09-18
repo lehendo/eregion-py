@@ -4,8 +4,6 @@
 
 > **Real-time neural network monitoring and analytics for PyTorch and TensorFlow**
 
-> ⚠️ **DEPRECATED** ⚠️
-> 
 > **This project is deprecated and no longer in active development.**
 > 
 
