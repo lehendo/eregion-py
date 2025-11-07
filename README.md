@@ -16,7 +16,7 @@
 
 Eregion is a powerful Python library that provides **real-time monitoring and analytics** for your neural networks. Whether you're training models with PyTorch or TensorFlow, Eregion gives you deep insights into your model's behavior, layer activations, gradients, and performance metrics.
 
-### ✨ Key Features
+### Key Features
 
 - **Layer-by-layer monitoring** - Track activations, gradients, and outputs from every layer
 - **Advanced analytics** - Dead neuron detection, entropy analysis, gradient norms
